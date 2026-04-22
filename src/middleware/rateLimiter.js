@@ -1,26 +1,35 @@
 import fixedWindowLimiter from '../limiters/fixedWindow.js';
 import tokenBucketLimiter from '../limiters/tokenBucket.js';
+import sliddingWindowLimiter from '../limiters/slidingWindow.js';
 
-const ALGORITHM = 'token'; //can change between 'token' and 'fixed'
+const ALGORITHM = 'sliding'; //can change between 'token' and 'fixed' or 'sliding'
 
 const rateLimiterMiddleware = async (req, res, next) => {
     try {
         const clientIP = req.ip;
 
         //pick algorithm 
-        const { allowed, cnt, limit, remaining, retryAfter } = ALGORITHM === 'token'
-            ? await tokenBucketLimiter(clientIP)
-            : await fixedWindowLimiter(clientIP);
+        let result;
+        if (ALGORITHM === 'token') {
+            result = await tokenBucketLimiter(clientIP);
+        } else if (ALGORITHM === 'sliding') {
+            result = await sliddingWindowLimiter(clientIP);
+        } else {
+            result = await fixedWindowLimiter(clientIP);
+        }
+
+        const { allowed, limit, remaining } = result;
+
         // setting headers
+        res.set('x-RateLimit-Algorithm', ALGORITHM);
         res.set('x-RateLimit-Limit', limit);
-        res.set('x-RateLimit-Remaining', remaining);
-        res.set('x-RateLimit-Count', cnt);
-        res.set('X-RateLimit-Reset', retryAfter);
+        res.set('X-RateLimit-Remaining', remaining);
+
         if (!allowed) {
             return res.status(429).json({
                 error: 'Too Many Requests',
                 algorithm: ALGORITHM,
-                message: 'Token bucket empty. Tokens refill at 1 per second.',
+                message: `Limit is ${limit} requests per window`,
                 tokensRemaining: 0
             });
         }

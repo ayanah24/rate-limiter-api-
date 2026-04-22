@@ -4,7 +4,7 @@ const tokenBucketLimiter = async (clientIP) => {
     const capacity = parseInt(process.env.BUCKET_CAPACITY);
     const refillRate = parseInt(process.env.REFILL_RATE);
     const key = `token_bucket:${clientIP}`;
-    const now = Date.now() / 1000;
+    const now = Date.now() / 1000; //in sec
 
     //get existing bucket form redis
     const data = await client.get(key);
