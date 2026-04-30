@@ -1,8 +1,10 @@
 import { client } from '../../redisClient.js';
 
-const fixedWindowLimiter = async (clientIP) => {
-    const windowSize = parseInt(process.env.WINDOW_SIZE);
-    const maxRequests = parseInt(process.env.MAX_REQUESTS);
+const fixedWindowLimiter = async (
+    clientIP,
+    maxRequests = parseInt(process.env.MAX_REQUESTS),
+    windowSize = parseInt(process.env.WINDOW_SIZE)
+) => {
     // calculating the current window ID (cycles every windowSize seconds)
     const windowId = Math.floor(Date.now() / 1000 / windowSize);
 

@@ -1,8 +1,11 @@
 import { client } from "../../redisClient.js";
 
-const sliddingWindowLimiter = async (clientIP) => {
-    const windowSize = parseInt(process.env.SLIDING_WINDOW_SECONDS);
-    const maxRequests = parseInt(process.env.SLIDING_MAX_REQUESTS);
+const sliddingWindowLimiter = async (
+    clientIP,
+    maxRequests = parseInt(process.env.SLIDING_MAX_REQUESTS),
+    windowSize = parseInt(process.env.SLIDING_WINDOW_SECONDS)
+) => {
+
     //in ms
     const now = Date.now();
     //window start
@@ -21,7 +24,6 @@ const sliddingWindowLimiter = async (clientIP) => {
 
     //execute all commands together
     const results = await pipeline.exec();
-    console.log(results);
 
     //zcnt is at index 2: [zRemRangeByScore, zAdd, zCount, expire]
     const requestCount = results[2];

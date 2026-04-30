@@ -1,9 +1,12 @@
 import { client } from "../../redisClient.js";
 
-const tokenBucketLimiter = async (clientIP) => {
-    const capacity = parseInt(process.env.BUCKET_CAPACITY);
-    const refillRate = parseInt(process.env.REFILL_RATE);
-    const key = `token_bucket:${clientIP}`;
+const tokenBucketLimiter = async (clientIP, capacity = parseInt(process.env.BUCKET_CAPACITY), window = null) => {
+    // If a window is provided, derive refillRate so the bucket fully refills over `window` seconds
+    // Otherwise fall back to the env var
+    const refillRate = window ? capacity / window : parseInt(process.env.REFILL_RATE);
+    // Include capacity & window in key so each per-route config gets its own isolated bucket
+    const bucketId = `${capacity}_${window || 'default'}`;
+    const key = `token_bucket:${clientIP}:${bucketId}`;
     const now = Date.now() / 1000; //in sec
 
     //get existing bucket form redis
@@ -19,16 +22,18 @@ const tokenBucketLimiter = async (clientIP) => {
     } else {
         //existing bucket
         const parsed = JSON.parse(data);
-        tokens = parsed.tokens;
+        tokens = Math.min(capacity, parsed.tokens); // clamp in case capacity changed
         lastRefill = parsed.lastRefill;
     }
-    //how many tokens to add since last req
+    //how many tokens to add since last req (keep fractional so slow rates accumulate)
     const timePassed = now - lastRefill;
-    const tokensToAdd = Math.floor(timePassed * refillRate);
+    const tokensToAdd = timePassed * refillRate;
     tokens = Math.min(capacity, tokens + tokensToAdd);
-    lastRefill = now;
+    // Only advance lastRefill by the time consumed to produce those tokens
+    // so leftover fractional time carries forward to the next request
+    lastRefill = lastRefill + tokensToAdd / refillRate;
 
-    const allowed = tokens >= 1;
+    const allowed = tokens >= 1; // need at least 1 full token
 
     if (allowed) {
         tokens -= 1; //consume token
@@ -42,8 +47,9 @@ const tokenBucketLimiter = async (clientIP) => {
 
     return {
         allowed,
-        tokens,
-        remaining: Math.floor(tokens)
+        limit: capacity,
+        remaining: Math.max(0, Math.floor(tokens)),  // floor for display
+        count: capacity - Math.max(0, Math.floor(tokens))
     };
 };
 
