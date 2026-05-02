@@ -24,7 +24,7 @@ app.post('/api/login', rateLimiter({ algorithm: 'token', max: 5, window: 60 }), 
     res.json({ message: 'Login successful' });
 });
 
-app.get('/api/search', rateLimiter({ algorithm: 'token', max: 30 }), (req, res) => {
+app.get('/api/search', rateLimiter({ algorithm: 'token', max: 30, window: 60 }), (req, res) => {
     res.json({ message: 'search endpoints-token bucket,max 30' });
 });
 
