@@ -2,11 +2,14 @@
   "name": "rate-limiter",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose"
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "keywords": [],
   "author": "",
@@ -20,5 +23,8 @@
     "redis": "^5.11.0",
     "winston": "^3.19.0",
     "zod": "^4.4.2"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0"
   }
 }

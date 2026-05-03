@@ -1,6 +1,6 @@
 import { client } from "../../redisClient.js";
 
-const tokenBucketLimiter = async (clientIP, capacity = parseInt(process.env.BUCKET_CAPACITY), window = null) => {
+const tokenBucketLimiter = async (clientIP, capacity = parseInt(process.env.BUCKET_SIZE), window = null) => {
     // If a window is provided, derive refillRate so the bucket fully refills over `window` seconds
     // Otherwise fall back to the env var
     const refillRate = window ? capacity / window : parseInt(process.env.REFILL_RATE);
@@ -47,8 +47,10 @@ const tokenBucketLimiter = async (clientIP, capacity = parseInt(process.env.BUCK
 
     return {
         allowed,
+        tokens: Math.max(0, Math.floor(tokens)),  // floor for display
+        capacity,
         limit: capacity,
-        remaining: Math.max(0, Math.floor(tokens)),  // floor for display
+        remaining: Math.max(0, Math.floor(tokens)),
         count: capacity - Math.max(0, Math.floor(tokens))
     };
 };

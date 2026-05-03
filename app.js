@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import helmet from 'helmet';
-import { connectRedis, client } from './redisClient.js';
+import { connectRedis } from './redisClient.js';
 import rateLimiter from './src/middleware/rateLimiter.js';
 import adminRoutes from './src/routes/admin.js';
 import statsRoutes from './src/routes/stats.js';
