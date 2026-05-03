@@ -2,7 +2,7 @@ import fixedWindowLimiter from '../limiters/fixedWindow.js';
 import tokenBucketLimiter from '../limiters/tokenBucket.js';
 import sliddingWindowLimiter from '../limiters/slidingWindow.js';
 import { isBlacklisted, isWhitelisted } from "../utils/ipFilter.js"
-
+import logger from '../utils/logger.js';
 //const ALGORITHM = 'sliding'; //can change between 'token' and 'fixed' or 'sliding'
 /*
   rateLimiter is now a FACTORY FUNCTION
@@ -24,6 +24,7 @@ const rateLimiter = (config = {}) => {
             const clientIP = req.ip;
             const blacklisted = await isBlacklisted(clientIP);
             if (blacklisted) {
+                logger.warn('Blocked blacklisted IP', { ip: clientIP, route: req.path });
                 return res.status(403).json({
                     error: 'Forbidden',
                     message: 'your IP has been blacklisted'
@@ -31,6 +32,7 @@ const rateLimiter = (config = {}) => {
             }
             const whitelisted = await isWhitelisted(clientIP);
             if (whitelisted) {
+                logger.info('Whitelisted IP bypass', { ip: clientIP });
                 return next();
 
             }
@@ -45,14 +47,21 @@ const rateLimiter = (config = {}) => {
             }
             const { allowed, remaining, limit, count } = result;
             const resetTime = Math.ceil(Date.now() / 1000) + window;
-            res.setHeader('RateLimit-limit', limit);
-            res.setHeader('Rate-limit-Remaining', remaining);
+            res.setHeader('RateLimit-Limit', limit);
+            res.setHeader('RateLimit-Remaining', remaining);
             res.setHeader('RateLimit-Reset', resetTime);
-            res.setHeader('X-Rate-Limit-Count', count);
-            res.setHeader('X-Rate-Limit-Algorithm', algorithm);
+            res.setHeader('Retry-After', window);
+            res.setHeader('X-RateLimit-Algorithm', algorithm);
+            res.setHeader('X-RateLimit-Count', count ?? 0);
 
             if (!allowed) {
-                res.setHeader('Retry-After', window);
+                logger.warn('Rate limit exceeded', {
+                    ip: clientIP,
+                    route: req.path,
+                    algorithm,
+                    count,
+                    limit
+                });
                 return res.status(429).json({
                     error: 'Too Many Requests',
                     algorithm,
@@ -61,9 +70,11 @@ const rateLimiter = (config = {}) => {
                     retryAfter: window
                 });
             }
+
             next();
+
         } catch (err) {
-            console.error('Rate limiter error', err);
+            logger.error('Rate limiter error', { error: err.message });
             next();
         }
     }
