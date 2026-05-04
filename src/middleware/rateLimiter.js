@@ -2,6 +2,7 @@ import fixedWindowLimiter from '../limiters/fixedWindow.js';
 import tokenBucketLimiter from '../limiters/tokenBucket.js';
 import sliddingWindowLimiter from '../limiters/slidingWindow.js';
 import { isBlacklisted, isWhitelisted } from "../utils/ipFilter.js"
+import { getRule } from '../config/ruleCache.js';
 import logger from '../utils/logger.js';
 //const ALGORITHM = 'sliding'; //can change between 'token' and 'fixed' or 'sliding'
 /*
@@ -15,9 +16,9 @@ import logger from '../utils/logger.js';
 */
 const rateLimiter = (config = {}) => {
     //destruct config with deafult
-    const algorithm = config.algorithm || 'sliding';
-    const max = config.max || parseInt(process.env.SLIDING_MAX_REQUESTS);
-    const window = config.window || parseInt(process.env.SLIDING_WINDOW_SECONDS);
+    const staticAlgorithm = config.algorithm || 'sliding';
+    const staticMax = config.max || parseInt(process.env.SLIDING_MAX_REQUESTS);
+    const staticWindow = config.window || parseInt(process.env.SLIDING_WINDOW_SECONDS);
 
     return async (req, res, next) => {
         try {
@@ -36,6 +37,12 @@ const rateLimiter = (config = {}) => {
                 return next();
 
             }
+
+            const dynamicRule = await getRule(req.path);
+            const algorithm = dynamicRule?.algorithm || staticAlgorithm;
+            const max = dynamicRule?.max || staticMax;
+            const window = dynamicRule?.window || staticWindow;
+
             let result;
             if (algorithm === 'token') {
                 result = await tokenBucketLimiter(clientIP, max);
@@ -60,7 +67,8 @@ const rateLimiter = (config = {}) => {
                     route: req.path,
                     algorithm,
                     count,
-                    limit
+                    limit,
+                    configSource: dynamicRule ? 'redis' : 'static'
                 });
                 return res.status(429).json({
                     error: 'Too Many Requests',

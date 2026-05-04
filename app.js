@@ -6,6 +6,7 @@ import rateLimiter from './src/middleware/rateLimiter.js';
 import adminRoutes from './src/routes/admin.js';
 import statsRoutes from './src/routes/stats.js';
 import logger from './src/utils/logger.js';
+import { loadLuaScripts } from './src/limiters/tokenBucket.js';
 
 const app = express();
 app.use(helmet());
@@ -49,6 +50,7 @@ app.use((err, req, res, next) => {
 
 const start = async () => {
     await connectRedis();
+    await loadLuaScripts();
     app.listen(process.env.PORT, () => {
         logger.info(`Server running on http://localhost:${process.env.PORT}`);
     });
