@@ -1,49 +1,45 @@
-// Shows last N requests in real time
-// Props: logs (array of request events)
 const RequestLog = ({ logs }) => (
     <div className="section">
-        <h2>Live Request Log</h2>
-        {logs.length === 0 && (
-            <div className="empty">No requests yet — make some API calls</div>
-        )}
-        {logs.map((log, i) => (
-            <div className="log-entry" key={i}>
+        <h2>
+            <span>📡</span> Live Request Log
+        </h2>
+        <div className="logs-container">
+            {logs.length === 0 ? (
+                <div className="empty">No requests yet — make some API calls to see traffic</div>
+            ) : (
+                logs.map((log, i) => (
+                    <div className="log-entry fade-in" key={i}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className={`badge ${log.allowed ? 'allowed' : 'blocked'}`}>
+                                {log.allowed ? 'PASS' : 'FAIL'}
+                            </span>
+                            <span className="log-ip">{log.ip}</span>
+                        </div>
 
-                {/* Allowed or blocked badge */}
-                <span className={`badge ${log.allowed ? 'allowed' : 'blocked'}`}>
-                    {log.allowed ? '✓' : '✗'}
-                </span>
+                        <span className="log-method">{log.method}</span>
+                        
+                        <span className="log-route" title={log.route}>{log.route}</span>
 
-                {/* IP address */}
-                <span style={{ color: '#94a3b8', minWidth: '80px' }}>
-                    {log.ip}
-                </span>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <span className="badge algo">{log.algorithm}</span>
+                            <span className="tag">{log.count}/{log.limit}</span>
+                        </div>
 
-                {/* HTTP method + route */}
-                <span style={{ color: '#e2e8f0' }}>
-                    {log.method} {log.route}
-                </span>
-
-                {/* Algorithm badge */}
-                <span className="badge algo">{log.algorithm}</span>
-
-                {/* Request count / limit */}
-                <span className="tag">{log.count}/{log.limit}</span>
-
-                {/* Status code */}
-                <span style={{
-                    color: log.allowed ? '#22c55e' : '#ef4444',
-                    marginLeft: 'auto'
-                }}>
-                    {log.statusCode}
-                </span>
-
-                {/* Timestamp */}
-                <span style={{ color: '#475569', fontSize: '11px' }}>
-                    {new Date(log.timestamp).toLocaleTimeString()}
-                </span>
-            </div>
-        ))}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                            <span style={{ 
+                                color: log.allowed ? 'var(--success)' : 'var(--danger)',
+                                fontWeight: '700'
+                            }}>
+                                {log.statusCode}
+                            </span>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                                {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
+                            </span>
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
     </div>
 );
 

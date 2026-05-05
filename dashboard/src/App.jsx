@@ -76,27 +76,30 @@ function App() {
 
       {/* Header */}
       <div className="header">
-        <div className={`status-dot ${connected ? '' : 'disconnected'}`} />
         <h1>🛡️ Rate Limiter Dashboard</h1>
-        <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#475569' }}>
-          {connected ? 'Live' : 'Disconnected'}
-        </span>
+        <div className="status-indicator">
+          <div className={`status-dot ${connected ? '' : 'disconnected'}`} />
+          <span>{connected ? 'System Live' : 'System Offline'}</span>
+        </div>
       </div>
 
       <div className="stats-grid">
         <StatCard
           label="Total Requests"
           value={totalRequests.toLocaleString()}
+          icon="📊"
         />
         <StatCard
           label={`Blocked (${blockRate}%)`}
           value={blockedRequests.toLocaleString()}
           type="blocked"
+          icon="🛡️"
         />
         <StatCard
           label="Unique IPs"
           value={activeIPs.size}
           type="active"
+          icon="👥"
         />
       </div>
 

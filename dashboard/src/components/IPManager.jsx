@@ -64,7 +64,7 @@ const IPManager = ({ onUpdate }) => {
 
     return (
         <div className="section">
-            <h2>IP Manager</h2>
+            <h2><span>🔒</span> IP Manager</h2>
 
             <div className="input-row">
                 <input

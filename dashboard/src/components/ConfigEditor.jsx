@@ -55,7 +55,7 @@ const ConfigEditor = () => {
 
     return (
         <div className="section">
-            <h2>Dynamic Config</h2>
+            <h2><span>⚙️</span> Dynamic Config</h2>
 
             <div className="input-row">
                 <input
