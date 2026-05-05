@@ -4,6 +4,7 @@ import sliddingWindowLimiter from '../limiters/slidingWindow.js';
 import { isBlacklisted, isWhitelisted } from "../utils/ipFilter.js"
 import { getRule } from '../config/ruleCache.js';
 import logger from '../utils/logger.js';
+import { getIO } from '../socket.js';
 //const ALGORITHM = 'sliding'; //can change between 'token' and 'fixed' or 'sliding'
 /*
   rateLimiter is now a FACTORY FUNCTION
@@ -14,6 +15,7 @@ import logger from '../utils/logger.js';
   - max: max requests (default: from .env)
   - window: window size in seconds (default: from .env)
 */
+
 const rateLimiter = (config = {}) => {
     //destruct config with deafult
     const staticAlgorithm = config.algorithm || 'sliding';
@@ -23,36 +25,61 @@ const rateLimiter = (config = {}) => {
     return async (req, res, next) => {
         try {
             const clientIP = req.ip;
+
+            // 1. Check IP Filters
             const blacklisted = await isBlacklisted(clientIP);
-            if (blacklisted) {
-                logger.warn('Blocked blacklisted IP', { ip: clientIP, route: req.path });
-                return res.status(403).json({
-                    error: 'Forbidden',
-                    message: 'your IP has been blacklisted'
-                });
-            }
             const whitelisted = await isWhitelisted(clientIP);
-            if (whitelisted) {
-                logger.info('Whitelisted IP bypass', { ip: clientIP });
-                return next();
 
-            }
-
+            // 2. Determine Rule
             const dynamicRule = await getRule(req.path);
             const algorithm = dynamicRule?.algorithm || staticAlgorithm;
             const max = dynamicRule?.max || staticMax;
             const window = dynamicRule?.window || staticWindow;
 
-            let result;
-            if (algorithm === 'token') {
-                result = await tokenBucketLimiter(clientIP, max);
+            let result = { allowed: true, remaining: max, limit: max, count: 0 };
 
-            } else if (algorithm === 'sliding') {
-                result = await sliddingWindowLimiter(clientIP, max, window);
+            if (blacklisted) {
+                result = { allowed: false, remaining: 0, limit: max, count: max, reason: 'blacklisted' };
+            } else if (whitelisted) {
+                result = { allowed: true, remaining: max, limit: max, count: 0, reason: 'whitelisted' };
             } else {
-                result = await fixedWindowLimiter(clientIP, max, window);
+                if (algorithm === 'token') {
+                    result = await tokenBucketLimiter(clientIP, max);
+                } else if (algorithm === 'sliding') {
+                    result = await sliddingWindowLimiter(clientIP, max, window);
+                } else {
+                    result = await fixedWindowLimiter(clientIP, max, window);
+                }
             }
+
             const { allowed, remaining, limit, count } = result;
+
+            // 3. Emit to Dashboard (DO THIS FOR ALL REQUESTS)
+            getIO()?.emit('request-log', {
+                ip: clientIP,
+                method: req.method,
+                route: req.path,
+                algorithm: blacklisted ? 'N/A' : algorithm,
+                allowed,
+                count: count || 0,
+                limit,
+                remaining,
+                timestamp: new Date().toISOString(),
+                statusCode: blacklisted ? 403 : (allowed ? 200 : 429)
+            });
+
+            // 4. Handle Response
+            if (blacklisted) {
+                logger.warn('Blocked blacklisted IP', { ip: clientIP, route: req.path });
+                return res.status(403).json({ error: 'Forbidden', message: 'your IP has been blacklisted' });
+            }
+
+            if (whitelisted) {
+                logger.info('Whitelisted IP bypass', { ip: clientIP });
+                return next();
+            }
+
+            // Set Headers
             const resetTime = Math.ceil(Date.now() / 1000) + window;
             res.setHeader('RateLimit-Limit', limit);
             res.setHeader('RateLimit-Remaining', remaining);

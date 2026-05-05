@@ -1,9 +1,7 @@
 import { z } from 'zod';
 //ip address schema
 export const ipSchema = z.object({
-    ip: z.union([z.ipv4(), z.ipv6()], {
-        error: 'Must be a valid IPv4 or IPv6 address',
-    })
+    ip: z.union([z.ipv4(), z.ipv6()])
 });
 
 export const rateLimitConfigSchema = z.object({
@@ -30,12 +28,13 @@ export const validate = (schema) => {
             req.body = schema.parse(req.body);
             next();
         } catch (err) {
+            const issues = err.issues || err.errors || [];
             return res.status(400).json({
                 error: 'Validation error',
-                details: (err.issues ?? err.errors ?? []).map(e => ({
-                    field: e.path.join('.'),
+                details: Array.isArray(issues) ? issues.map(e => ({
+                    field: e.path ? e.path.join('.') : 'unknown',
                     message: e.message
-                }))
+                })) : []
             })
         }
     }

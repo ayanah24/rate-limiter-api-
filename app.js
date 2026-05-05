@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import helmet from 'helmet';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { setIO } from './src/socket.js';
 import { connectRedis } from './redisClient.js';
 import rateLimiter from './src/middleware/rateLimiter.js';
 import adminRoutes from './src/routes/admin.js';
@@ -9,10 +13,40 @@ import logger from './src/utils/logger.js';
 import { loadLuaScripts } from './src/limiters/tokenBucket.js';
 
 const app = express();
+
+app.use(cors({
+    origin: 'http://localhost:5173', // Allow dashboard
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-Admin-Key']
+}));
+//http server wrapping express
+const httpServer = createServer(app);
+//socket.io server
+const io = new Server(httpServer, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ['GET', 'POST']
+    }
+});
+setIO(io);
+
 app.use(helmet());
 app.set('trust proxy', false);
 
 app.use(express.json({ limit: '10kb' })); //limit request body size to prevent large payloads attacks
+
+//socket.io connection handler
+io.on('connection', (socket) => {
+    logger.info('Dashboard connected', { socketId: socket.id });
+    socket.emit('connected', {
+        message: 'Welcome to rate limiter dashboard',
+        timestamp: new Date().toISOString(),
+    });
+
+    socket.on('disconnect', () => {
+        logger.info('Dashboard disconnected', { socketId: socket.id });
+    });
+});
 
 //use different limiters per route
 app.get('/', rateLimiter({ algorithm: 'sliding', max: 50, window: 60 }), (req, res) => {
@@ -51,7 +85,7 @@ app.use((err, req, res, next) => {
 const start = async () => {
     await connectRedis();
     await loadLuaScripts();
-    app.listen(process.env.PORT, () => {
+    httpServer.listen(process.env.PORT, () => {
         logger.info(`Server running on http://localhost:${process.env.PORT}`);
     });
 };
