@@ -2,7 +2,8 @@
 
 A production-ready distributed Rate Limiter built with Node.js, Express, and Redis. Supports three algorithms, real-time dashboard, dynamic config, and IP-based security controls.
 
-![dashboard](assets/dashboard.png)
+
+<img width="1920" height="1080" alt="dashboard png" src="https://github.com/user-attachments/assets/1e27913b-4679-4212-b01a-233bcb30a20c" />
 
 ---
 
@@ -229,7 +230,8 @@ X-Config-Source: redis | static
 npm test
 ```
 
-![tests](assets/tests.png)
+<img width="1635" height="656" alt="tests png" src="https://github.com/user-attachments/assets/1663ebd2-1bbe-4692-9552-5f98896daab6" />
+
 
 17 tests across 3 test suites covering:
 - Allow/block boundary conditions
