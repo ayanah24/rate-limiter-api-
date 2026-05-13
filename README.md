@@ -133,11 +133,10 @@ rate-limiter-node/
 │   ├── fixedWindow.test.js
 │   ├── tokenBucket.test.js
 │   └── slidingWindow.test.js
-├── logs/                       ← gitignored
-├── assets/                     ← screenshots
+├── logs/                       ← gitignored                    
 ├── redisClient.js
 ├── .env.example
-├── rate-limiter.postman_collection.json
+├── postman_collection.json 
 └── README.md
 ```
 
@@ -244,7 +243,7 @@ npm test
 
 ### API Testing
 
-Import `rate-limiter.postman_collection.json` into Postman.
+Import `postman_collection.json` into Postman.
 
 ---
 
