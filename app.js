@@ -15,7 +15,7 @@ import { loadLuaScripts } from './src/limiters/tokenBucket.js';
 const app = express();
 
 app.use(cors({
-    origin: 'http://localhost:5173', // Allow dashboard
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173', // Allow dashboard
     methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-Admin-Key']
 }));
@@ -24,7 +24,7 @@ const httpServer = createServer(app);
 //socket.io server
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: process.env.CORS_ORIGIN || "http://localhost:5173",
         methods: ['GET', 'POST']
     }
 });
